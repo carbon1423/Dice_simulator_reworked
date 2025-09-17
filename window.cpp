@@ -5,6 +5,7 @@ using namespace std;
 #include <fstream>
 #include <sstream>
 #include <string>
+#include <random>
 #include "dice.h"
 #include "button.h"
 
@@ -306,6 +307,8 @@ int main() {
 
     glUseProgram(diceShaderProgram);
 
+    glm::mat4 model = glm::mat4(1.0f);
+
     GLint modelLoc       = glGetUniformLocation(diceShaderProgram, "model");
     GLint viewLoc        = glGetUniformLocation(diceShaderProgram, "view");
     GLint projLoc        = glGetUniformLocation(diceShaderProgram, "projection");
@@ -326,11 +329,23 @@ int main() {
 
 
 
-    State currentState = State::D6;
-    // Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
+    State currentState = State::D4;
+    State prevState = State::D4;
+
+    float lastFrame = 0.0f;  // time of last frame
+    float deltaTime = 0.0f;
+    float rotationAngle = 0.0f;
+
+    std::random_device rd;  
+    std::mt19937 gen(rd());  // Mersenne Twister engine
+    std::uniform_real_distribution<float> dist(0.0f, 1.0f); 
 
     // Render loop
     while (!glfwWindowShouldClose(window)) {
+
+        float currentFrame = glfwGetTime();      // seconds since init
+        deltaTime = (currentFrame - lastFrame);    // difference from last frame
+        lastFrame = currentFrame;
 
         glfwPollEvents();
         
@@ -362,8 +377,17 @@ int main() {
             // Update button hover
             button.set_selected(button.contains(mouseX, mouseY));
 
+            
+
             if (mousePressed && button.contains(mouseX, mouseY)) {
+                if(prevState == currentState){
+                    prevState = currentState;
+                }
+                cout << "prevState" << stateToString(prevState) << endl;
                 currentState = static_cast<State>(button.get_index());
+                if(currentState == State::ROLL){
+                    rotationAngle = 0.0f;
+                }
                 // Debugging line to know what state we are in
                 // cout << "currentState = " << stateToString(currentState) << endl;
             }
@@ -387,21 +411,33 @@ int main() {
         glUseProgram(diceShaderProgram);
 
         // --- Matrices ---
-        glm::mat4 model = glm::mat4(1.0f);
+        
+
+
+        if(currentState == State::ROLL){
+            rotationAngle += deltaTime * 2.0f;
+            float rand = dist(gen);
+            model = glm::rotate(model, glm::radians(rotationAngle), glm::vec3(rotationAngle * rand, -rotationAngle * rand, rotationAngle  * rand));
+            // cout << rotationAngle << endl;
+            if(rotationAngle >= 2 * M_PI){
+                rotationAngle = 0.0f;
+                currentState = prevState;
+                cout << stateToString(prevState) << endl;
+            }
+        }
         
         // simple static camera at (0,0,3) looking at origin
-        glm::vec3 camPos   = glm::vec3(0.0f, -3.0f, 1.0f);
-        glm::vec3 camTarget= glm::vec3(0.0f, 1.0f, 1.0f);
-        glm::vec3 camUp    = glm::vec3(0.0f, 0.0f, 1.0f);
+        glm::vec3 camPos   = glm::vec3(0.0f, 0.0f, -3.0f);
+        glm::vec3 camTarget= glm::vec3(0.0f, 0.0f, 0.0f);
+        glm::vec3 camUp    = glm::vec3(0.0f, 1.0f, 0.0f);
         
         glm::mat4 view = glm::lookAt(camPos, camTarget, camUp);
         
         // fixed perspective projection
-        glm::mat4 projection = glm::perspective(
-            glm::radians(50.0f),                  // FOV
-            (float)WIN_WIDTH / (float)WIN_HEIGHT, // aspect ratio
-            0.1f,                                 // near plane
-            100.0f                                // far plane
+        glm::mat4 projection = glm::ortho(
+            -2.0f, 2.0f,  // left, right
+            -2.0f, 2.0f,  // bottom, top
+            0.1f, 10.0f   // near, far
         );
         
         // send matrices
@@ -410,13 +446,13 @@ int main() {
         glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
         
         // --- Lighting ---
-        glm::vec3 lightPos = glm::vec3(0.0f, -10.0f, 3.0f); // example light position
+        glm::vec3 lightPos = glm::vec3(0.0f, 0.0f, -10.0f); // example light position
         glUniform3fv(lightPosLoc, 1, glm::value_ptr(lightPos));
         
         // use camPos for view position
         glUniform3fv(viewPosLoc, 1, glm::value_ptr(camPos));
         
-        glUniform3f(lightColorLoc, 1.0f, 1.0f, 1.0f);
+        glUniform3f(lightColorLoc, 0.8f, 0.8f, 0.8f);
         glUniform3f(objectColorLoc, 0.8f, 0.3f, 0.3f); // red dice
         
         // --- Draw ---
