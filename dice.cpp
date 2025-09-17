@@ -19,13 +19,23 @@ Dice::Dice(){
 
 Dice::Dice(int f){
 	faces = f;
+    /*
+    In this constructor we determine how many faces the dice will have based on f
+    we then use this to define the points
+    and we also define the triangles (the indices of points that make up each face)*/
     switch (f) {
         case 4:  // d4
             points = {
-                { -0.5f, sqrt(3)/4.0f, 0.0f },
-                {  0.5f, sqrt(3)/4.0f, 0.0f },
-                {  0.0f, sqrt(3)/4.0f, sqrt(3)/2.0f },
-                {  0.0f, sqrt(3)/4.0f - sqrt(6)/3.0f, sqrt(3)/6.0f }
+                { 0.0f, 1.0f, 0.0f },
+                {  sqrt(3.0f)/2.0f, -0.5f, 0.0f },
+                {  -sqrt(3.0f)/2.0f, -0.5f, 0.0f },
+                {  0.0f, 0.0f, 1.41f }
+            };
+            triangles = {
+                {0, 1, 2},
+                {1, 2, 3},
+                {0, 2, 3},
+                {0, 1, 3}
             };
             break;
         case 6:  // d6
@@ -40,6 +50,26 @@ Dice::Dice(int f){
 				{-0.5f,0.5f,0.5f},
 				{0.5f,0.5f,0.5f}
 			};
+            triangles = {
+                // Front face (+Z)
+                {3, 5, 7},
+                {3, 7, 6},
+                // Back face (-Z)
+                {0, 2, 4},
+                {0, 4, 1},
+                // Left face (-X)
+                {0, 3, 6},
+                {0, 6, 2},
+                // Right face (+X)
+                {1, 4, 7},
+                {1, 7, 5},
+                // Top face (+Y)
+                {2, 6, 7},
+                {2, 7, 4},
+                // Bottom face (-Y)
+                {0, 1, 5},
+                {0, 5, 3}
+            };
 			break;
 		case 8:  // d8
             points = {
@@ -115,3 +145,11 @@ Dice::Dice(int f){
             throw invalid_argument("Unsupported dice type");
     }
 }
+
+const vector<glm::vec3>& Dice::get_points() const {
+    return points;
+}
+
+const vector<Triangle>& Dice::get_triangles() const {
+    return triangles;
+}   

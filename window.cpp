@@ -22,6 +22,11 @@ enum class State{
     CUSTOM
 };
 
+/*
+stateToString(State s)
+- This is a helper function to allow me to print what state we are in
+because I cannot print an enum object
+*/
 std::string stateToString(State s) {
     switch(s) {
         case State::D4:  return "D4";
@@ -37,6 +42,13 @@ std::string stateToString(State s) {
 }
 
 
+/*
+loadShaderProgram
+Function:
+- read the data in each shader program, 
+compile each shader, link the shaders, and delete
+Return: the Shader program
+*/
 GLuint loadShaderProgram(const std::string& vertexPath, const std::string& fragmentPath) {
     // 1. Read vertex shader
     std::ifstream vFile(vertexPath);
@@ -102,7 +114,44 @@ GLuint loadShaderProgram(const std::string& vertexPath, const std::string& fragm
     return shaderProgram;
 }
 
+/*buildDiceVertices is a helper function to calculate the normals of each face 
+and inlcude it in our flattened vertice vector*/
+std::vector<Vertex> buildDiceVertices(const std::vector<Dice>& diceVec, std::vector<unsigned int>& outIndices){
+    std::vector<Vertex> vertices;
+    outIndices.clear();
 
+    unsigned int vertexOffset = 0;
+
+    for (const Dice& die : diceVec) {
+        const auto& points = die.get_points();
+        const auto& tris   = die.get_triangles();
+
+        for (const auto& tri : tris) {
+            glm::vec3 v0 = points[tri.i];
+            glm::vec3 v1 = points[tri.j];
+            glm::vec3 v2 = points[tri.k];
+
+            // Compute per-face normal
+            glm::vec3 edge1 = v1 - v0;
+            glm::vec3 edge2 = v2 - v0;
+            glm::vec3 normal = glm::normalize(glm::cross(edge1, edge2));
+
+            // Add three vertices with the same normal
+            vertices.push_back({v0, normal});
+            vertices.push_back({v1, normal});
+            vertices.push_back({v2, normal});
+
+            // Indices (local to this triangle)
+            outIndices.push_back(vertexOffset + 0);
+            outIndices.push_back(vertexOffset + 1);
+            outIndices.push_back(vertexOffset + 2);
+
+            vertexOffset += 3;
+        }
+    }
+
+    return vertices;
+}
 
 
 
@@ -128,6 +177,11 @@ int main() {
             buttons.push_back(Button(x,y,w,h,k));
         }
     }
+
+    // Define a vector to hold each dice object
+    vector<Dice> diceVec;
+    diceVec.push_back(Dice(4));
+    diceVec.push_back(Dice(6));
 
 
 
@@ -159,6 +213,10 @@ int main() {
         std::cerr << "Failed to initialize GLAD\n";
         return -1;
     }
+
+
+
+
 
     GLuint buttonShaderProgram = loadShaderProgram("shaders/button.vert", "shaders/button.frag");
 
@@ -209,16 +267,77 @@ int main() {
     glBindVertexArray(0);
 
 
+    // Here we will set up the diceVBO, VAO, and EBO
+    // This will allow our dice to render
+    //Initialize the shader program for the dice
+    GLuint diceShaderProgram = loadShaderProgram("shaders/dice.vert","shaders/dice.frag");
+
+    //Next we flatten the vertex data
+    vector<unsigned int> diceIndices;
+    vector<Vertex> diceVertices = buildDiceVertices(diceVec, diceIndices);
+
+    // Set up our VBO, EBO, and VAO
+    GLuint diceVBO, diceEBO, diceVAO;
+    glGenBuffers(1, &diceVBO);
+    glGenBuffers(1, &diceEBO);
+    glGenVertexArrays(1, &diceVAO);
+
+    glBindVertexArray(diceVAO);
+
+    glBindBuffer(GL_ARRAY_BUFFER, diceVBO);
+    glBufferData(GL_ARRAY_BUFFER, diceVertices.size() * sizeof(Vertex), diceVertices.data(), GL_STATIC_DRAW);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, diceEBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, diceIndices.size() * sizeof(unsigned int), diceIndices.data(), GL_STATIC_DRAW);
+
+    // Position attribute
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, pos));
+    glEnableVertexAttribArray(0);
+    
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, normal));
+    glEnableVertexAttribArray(1);
+    
+    
+
+    glBindVertexArray(0);
+
+
+    glEnable(GL_DEPTH_TEST);
+
+    glUseProgram(diceShaderProgram);
+
+    GLint modelLoc       = glGetUniformLocation(diceShaderProgram, "model");
+    GLint viewLoc        = glGetUniformLocation(diceShaderProgram, "view");
+    GLint projLoc        = glGetUniformLocation(diceShaderProgram, "projection");
+    GLint lightPosLoc    = glGetUniformLocation(diceShaderProgram, "lightPos");
+    GLint viewPosLoc     = glGetUniformLocation(diceShaderProgram, "viewPos");
+    GLint lightColorLoc  = glGetUniformLocation(diceShaderProgram, "lightColor");
+    GLint objectColorLoc = glGetUniformLocation(diceShaderProgram, "objectColor");
+    
+    //quick debug if a uniform wasn't found (misspelled in shader or optimized out)
+    if (modelLoc == -1)       std::cerr << "Warning: 'model' uniform not found\n";
+    if (viewLoc == -1)        std::cerr << "Warning: 'view' uniform not found\n";
+    if (projLoc == -1)        std::cerr << "Warning: 'projection' uniform not found\n";
+    if (lightPosLoc == -1)    std::cerr << "Warning: 'lightPos' uniform not found\n";
+    if (viewPosLoc == -1)     std::cerr << "Warning: 'viewPos' uniform not found\n";
+    if (lightColorLoc == -1)  std::cerr << "Warning: 'lightColor' uniform not found\n";
+    if (objectColorLoc == -1) std::cerr << "Warning: 'objectColor' uniform not found\n";
+
+
+
 
     State currentState = State::D6;
+    // Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
 
     // Render loop
     while (!glfwWindowShouldClose(window)) {
 
         glfwPollEvents();
         
+        
+
         glClearColor(0.2f, 0.5f, 0.3f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // Use the button shader program
         glUseProgram(buttonShaderProgram);
@@ -265,8 +384,46 @@ int main() {
             glDrawArrays(GL_TRIANGLES, 0, 6);
         }
 
+        glUseProgram(diceShaderProgram);
 
-
+        // --- Matrices ---
+        glm::mat4 model = glm::mat4(1.0f);
+        
+        // simple static camera at (0,0,3) looking at origin
+        glm::vec3 camPos   = glm::vec3(0.0f, -3.0f, 1.0f);
+        glm::vec3 camTarget= glm::vec3(0.0f, 1.0f, 1.0f);
+        glm::vec3 camUp    = glm::vec3(0.0f, 0.0f, 1.0f);
+        
+        glm::mat4 view = glm::lookAt(camPos, camTarget, camUp);
+        
+        // fixed perspective projection
+        glm::mat4 projection = glm::perspective(
+            glm::radians(50.0f),                  // FOV
+            (float)WIN_WIDTH / (float)WIN_HEIGHT, // aspect ratio
+            0.1f,                                 // near plane
+            100.0f                                // far plane
+        );
+        
+        // send matrices
+        glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+        glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
+        glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
+        
+        // --- Lighting ---
+        glm::vec3 lightPos = glm::vec3(0.0f, -10.0f, 3.0f); // example light position
+        glUniform3fv(lightPosLoc, 1, glm::value_ptr(lightPos));
+        
+        // use camPos for view position
+        glUniform3fv(viewPosLoc, 1, glm::value_ptr(camPos));
+        
+        glUniform3f(lightColorLoc, 1.0f, 1.0f, 1.0f);
+        glUniform3f(objectColorLoc, 0.8f, 0.3f, 0.3f); // red dice
+        
+        // --- Draw ---
+        glBindVertexArray(diceVAO);
+        glDrawElements(GL_TRIANGLES, 12, GL_UNSIGNED_INT, 0);
+        glBindVertexArray(0);
+        
 
 
         glfwSwapBuffers(window);
