@@ -42,6 +42,14 @@ std::string stateToString(State s) {
     return "Unknown";
 }
 
+/*renderSelect(State s)
+- Take in the current state and figure out which vertexes to render based on the state*/
+// void renderSelect(State s){
+//     switch(s){
+//     case State::D4: glDrawElements(GL_TRIANGLES, 4 * 3, GL_UNSIGNED_INT, (void*)(0));
+//     case State::D6: glDrawElements(GL_TRIANGLES, 12, GL_UNSIGNED_INT, (void*)(12));
+//     }
+// }
 
 /*
 loadShaderProgram
@@ -410,9 +418,8 @@ int main() {
 
         glUseProgram(diceShaderProgram);
 
-        // --- Matrices ---
-        
-
+        glViewport(0, 200,WIN_WIDTH,400);
+        float portionAspect = WIN_WIDTH/(2 * WIN_HEIGHT/3);
 
         if(currentState == State::ROLL){
             rotationAngle += deltaTime * 2.0f;
@@ -434,11 +441,15 @@ int main() {
         glm::mat4 view = glm::lookAt(camPos, camTarget, camUp);
         
         // fixed perspective projection
+        float zoom = 2.0f;
+
         glm::mat4 projection = glm::ortho(
-            -2.0f, 2.0f,  // left, right
-            -2.0f, 2.0f,  // bottom, top
-            0.1f, 10.0f   // near, far
+            -portionAspect * zoom, portionAspect * zoom,  // left, right
+            -zoom, zoom,  // bottom, top
+            0.1f, 100.0f   // near, far
         );
+
+        // glm::mat4 projection = glm::perspective(glm::radians(45.0f), 1.5f,0.1f,100.0f);
         
         // send matrices
         glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
@@ -458,9 +469,11 @@ int main() {
         // --- Draw ---
         glBindVertexArray(diceVAO);
         glDrawElements(GL_TRIANGLES, 12, GL_UNSIGNED_INT, 0);
+        // renderSelect(currentState);
         glBindVertexArray(0);
         
 
+        glViewport(0, 0, WIN_WIDTH, WIN_HEIGHT);
 
         glfwSwapBuffers(window);
         
