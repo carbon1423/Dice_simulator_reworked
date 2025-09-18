@@ -50,6 +50,7 @@ void renderSelect(State s){
         break;
     case State::D6: glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, (void*)(12 * sizeof(GLuint)));
         break;
+    case State::D8: glDrawElements(GL_TRIANGLES, 24, GL_UNSIGNED_INT, (void*)(48 * sizeof(GLuint)));
     }
 }
 
@@ -193,6 +194,7 @@ int main() {
     vector<Dice> diceVec;
     diceVec.push_back(Dice(4));
     diceVec.push_back(Dice(6));
+    diceVec.push_back(Dice(8));
 
 
 
@@ -351,6 +353,8 @@ int main() {
     std::uniform_real_distribution<float> dist(0.0f, 1.0f); 
 
     bool isRolling = false;
+
+    // glDisable(GL_CULL_FACE);
 
     // Render loop
     while (!glfwWindowShouldClose(window)) {
