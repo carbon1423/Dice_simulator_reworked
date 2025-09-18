@@ -44,12 +44,14 @@ std::string stateToString(State s) {
 
 /*renderSelect(State s)
 - Take in the current state and figure out which vertexes to render based on the state*/
-// void renderSelect(State s){
-//     switch(s){
-//     case State::D4: glDrawElements(GL_TRIANGLES, 4 * 3, GL_UNSIGNED_INT, (void*)(0));
-//     case State::D6: glDrawElements(GL_TRIANGLES, 12, GL_UNSIGNED_INT, (void*)(12));
-//     }
-// }
+void renderSelect(State s){
+    switch(s){
+    case State::D4: glDrawElements(GL_TRIANGLES, 12, GL_UNSIGNED_INT, (void*)(0));
+        break;
+    case State::D6: glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, (void*)(12 * sizeof(GLuint)));
+        break;
+    }
+}
 
 /*
 loadShaderProgram
@@ -348,6 +350,8 @@ int main() {
     std::mt19937 gen(rd());  // Mersenne Twister engine
     std::uniform_real_distribution<float> dist(0.0f, 1.0f); 
 
+    bool isRolling = false;
+
     // Render loop
     while (!glfwWindowShouldClose(window)) {
 
@@ -388,14 +392,15 @@ int main() {
             
 
             if (mousePressed && button.contains(mouseX, mouseY)) {
-                if(prevState == currentState){
-                    prevState = currentState;
-                }
-                cout << "prevState" << stateToString(prevState) << endl;
-                currentState = static_cast<State>(button.get_index());
-                if(currentState == State::ROLL){
+                prevState = currentState;
+                // cout << "prevState" << stateToString(prevState) << endl;
+                if(static_cast<State>(button.get_index()) != State::ROLL){
+                    currentState = static_cast<State>(button.get_index());
+                }else{
+                    isRolling = true;
                     rotationAngle = 0.0f;
                 }
+                
                 // Debugging line to know what state we are in
                 // cout << "currentState = " << stateToString(currentState) << endl;
             }
@@ -421,15 +426,17 @@ int main() {
         glViewport(0, 200,WIN_WIDTH,400);
         float portionAspect = WIN_WIDTH/(2 * WIN_HEIGHT/3);
 
-        if(currentState == State::ROLL){
+        if(isRolling){
             rotationAngle += deltaTime * 2.0f;
             float rand = dist(gen);
             model = glm::rotate(model, glm::radians(rotationAngle), glm::vec3(rotationAngle * rand, -rotationAngle * rand, rotationAngle  * rand));
             // cout << rotationAngle << endl;
             if(rotationAngle >= 2 * M_PI){
                 rotationAngle = 0.0f;
-                currentState = prevState;
-                cout << stateToString(prevState) << endl;
+                // currentState = prevState;
+                isRolling = false;
+
+                cout << stateToString(currentState) << endl;
             }
         }
         
@@ -468,8 +475,8 @@ int main() {
         
         // --- Draw ---
         glBindVertexArray(diceVAO);
-        glDrawElements(GL_TRIANGLES, 12, GL_UNSIGNED_INT, 0);
-        // renderSelect(currentState);
+        // glDrawElements(GL_TRIANGLES, 12, GL_UNSIGNED_INT, 0);
+        renderSelect(currentState);
         glBindVertexArray(0);
         
 
