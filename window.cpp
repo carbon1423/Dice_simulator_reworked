@@ -8,6 +8,7 @@ using namespace std;
 #include <random>
 #include "dice.h"
 #include "button.h"
+#include "shader.h"
 
 #define WIN_HEIGHT 600
 #define WIN_WIDTH 600
@@ -46,85 +47,16 @@ std::string stateToString(State s) {
 - Take in the current state and figure out which vertexes to render based on the state*/
 void renderSelect(State s){
     switch(s){
-    case State::D4: glDrawElements(GL_TRIANGLES, 12, GL_UNSIGNED_INT, (void*)(0));
-        break;
-    case State::D6: glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, (void*)(12 * sizeof(GLuint)));
-        break;
-    case State::D8: glDrawElements(GL_TRIANGLES, 24, GL_UNSIGNED_INT, (void*)(48 * sizeof(GLuint)));
+    case State::D4:  glDrawElements(GL_TRIANGLES, 12,  GL_UNSIGNED_INT, (void*)(0)); break;
+    case State::D6:  glDrawElements(GL_TRIANGLES, 36,  GL_UNSIGNED_INT, (void*)(12 * sizeof(GLuint))); break;
+    case State::D8:  glDrawElements(GL_TRIANGLES, 24,  GL_UNSIGNED_INT, (void*)(48 * sizeof(GLuint))); break;
+    case State::D10: glDrawElements(GL_TRIANGLES, 60,  GL_UNSIGNED_INT, (void*)(72 * sizeof(GLuint))); break;
+    case State::D12: glDrawElements(GL_TRIANGLES, 108, GL_UNSIGNED_INT, (void*)((72+60) * sizeof(GLuint))); break;
+    case State::D20: glDrawElements(GL_TRIANGLES, 60,  GL_UNSIGNED_INT, (void*)((72+60+108) * sizeof(GLuint))); break;
     }
+
 }
 
-/*
-loadShaderProgram
-Function:
-- read the data in each shader program, 
-compile each shader, link the shaders, and delete
-Return: the Shader program
-*/
-GLuint loadShaderProgram(const std::string& vertexPath, const std::string& fragmentPath) {
-    // 1. Read vertex shader
-    std::ifstream vFile(vertexPath);
-    if (!vFile.is_open()) {
-        std::cerr << "Failed to open vertex shader: " << vertexPath << "\n";
-        exit(-1);
-    }
-    std::stringstream vBuffer;
-    vBuffer << vFile.rdbuf();
-    std::string vertexCodeStr = vBuffer.str();
-    const char* vertexCode = vertexCodeStr.c_str();
-    vFile.close();
-
-    // 2. Read fragment shader
-    std::ifstream fFile(fragmentPath);
-    if (!fFile.is_open()) {
-        std::cerr << "Failed to open fragment shader: " << fragmentPath << "\n";
-        exit(-1);
-    }
-    std::stringstream fBuffer;
-    fBuffer << fFile.rdbuf();
-    std::string fragmentCodeStr = fBuffer.str();
-    const char* fragmentCode = fragmentCodeStr.c_str();
-    fFile.close();
-
-    // 3. Compile vertex shader
-    GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vertexShader, 1, &vertexCode, nullptr);
-    glCompileShader(vertexShader);
-    GLint success;
-    char infoLog[512];
-    glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
-    if (!success) {
-        glGetShaderInfoLog(vertexShader, 512, nullptr, infoLog);
-        std::cerr << "Vertex shader compilation error:\n" << infoLog << "\n";
-    }
-
-    // 4. Compile fragment shader
-    GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fragmentShader, 1, &fragmentCode, nullptr);
-    glCompileShader(fragmentShader);
-    glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
-    if (!success) {
-        glGetShaderInfoLog(fragmentShader, 512, nullptr, infoLog);
-        std::cerr << "Fragment shader compilation error:\n" << infoLog << "\n";
-    }
-
-    // 5. Link shader program
-    GLuint shaderProgram = glCreateProgram();
-    glAttachShader(shaderProgram, vertexShader);
-    glAttachShader(shaderProgram, fragmentShader);
-    glLinkProgram(shaderProgram);
-    glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
-    if (!success) {
-        glGetProgramInfoLog(shaderProgram, 512, nullptr, infoLog);
-        std::cerr << "Shader program linking error:\n" << infoLog << "\n";
-    }
-
-    // 6. Clean up shaders (linked into program)
-    glDeleteShader(vertexShader);
-    glDeleteShader(fragmentShader);
-
-    return shaderProgram;
-}
 
 /*buildDiceVertices is a helper function to calculate the normals of each face 
 and inlcude it in our flattened vertice vector*/
@@ -195,6 +127,9 @@ int main() {
     diceVec.push_back(Dice(4));
     diceVec.push_back(Dice(6));
     diceVec.push_back(Dice(8));
+    diceVec.push_back(Dice(10));
+    diceVec.push_back(Dice(12));
+    diceVec.push_back(Dice(20));
 
 
 
@@ -231,7 +166,7 @@ int main() {
 
 
 
-    GLuint buttonShaderProgram = loadShaderProgram("shaders/button.vert", "shaders/button.frag");
+    Shader buttonShader("shaders/button.vert", "shaders/button.frag");
 
     // Define units for orthomatrix
     float left = 0.0f;
@@ -250,8 +185,8 @@ int main() {
 
 
     // Send ortho to the shader
-    GLuint uProjLoc = glGetUniformLocation(buttonShaderProgram, "u_projection");
-    glUseProgram(buttonShaderProgram);
+    GLuint uProjLoc = glGetUniformLocation(buttonShader.getID(), "u_projection");
+    buttonShader.use();
     glUniformMatrix4fv(uProjLoc, 1, GL_FALSE, ortho);
 
     float buttonVertices[] = { // Vertices for buttons
@@ -283,7 +218,7 @@ int main() {
     // Here we will set up the diceVBO, VAO, and EBO
     // This will allow our dice to render
     //Initialize the shader program for the dice
-    GLuint diceShaderProgram = loadShaderProgram("shaders/dice.vert","shaders/dice.frag");
+    Shader diceShader("shaders/dice.vert","shaders/dice.frag");
 
     //Next we flatten the vertex data
     vector<unsigned int> diceIndices;
@@ -317,17 +252,17 @@ int main() {
 
     glEnable(GL_DEPTH_TEST);
 
-    glUseProgram(diceShaderProgram);
+    diceShader.use();
 
     glm::mat4 model = glm::mat4(1.0f);
 
-    GLint modelLoc       = glGetUniformLocation(diceShaderProgram, "model");
-    GLint viewLoc        = glGetUniformLocation(diceShaderProgram, "view");
-    GLint projLoc        = glGetUniformLocation(diceShaderProgram, "projection");
-    GLint lightPosLoc    = glGetUniformLocation(diceShaderProgram, "lightPos");
-    GLint viewPosLoc     = glGetUniformLocation(diceShaderProgram, "viewPos");
-    GLint lightColorLoc  = glGetUniformLocation(diceShaderProgram, "lightColor");
-    GLint objectColorLoc = glGetUniformLocation(diceShaderProgram, "objectColor");
+    GLint modelLoc       = glGetUniformLocation(diceShader.getID(), "model");
+    GLint viewLoc        = glGetUniformLocation(diceShader.getID(), "view");
+    GLint projLoc        = glGetUniformLocation(diceShader.getID(), "projection");
+    GLint lightPosLoc    = glGetUniformLocation(diceShader.getID(), "lightPos");
+    GLint viewPosLoc     = glGetUniformLocation(diceShader.getID(), "viewPos");
+    GLint lightColorLoc  = glGetUniformLocation(diceShader.getID(), "lightColor");
+    GLint objectColorLoc = glGetUniformLocation(diceShader.getID(), "objectColor");
     
     //quick debug if a uniform wasn't found (misspelled in shader or optimized out)
     if (modelLoc == -1)       std::cerr << "Warning: 'model' uniform not found\n";
@@ -371,13 +306,13 @@ int main() {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // Use the button shader program
-        glUseProgram(buttonShaderProgram);
+        buttonShader.use();
         
         // Get uniform locations once (can also do this outside the loop)
-        GLuint uPosLoc   = glGetUniformLocation(buttonShaderProgram, "u_position");
-        GLuint uSizeLoc  = glGetUniformLocation(buttonShaderProgram, "u_size");
-        GLuint uColorLoc = glGetUniformLocation(buttonShaderProgram, "u_color");
-        GLuint uProjLoc  = glGetUniformLocation(buttonShaderProgram, "u_projection");
+        GLuint uPosLoc   = glGetUniformLocation(buttonShader.getID(), "u_position");
+        GLuint uSizeLoc  = glGetUniformLocation(buttonShader.getID(), "u_size");
+        GLuint uColorLoc = glGetUniformLocation(buttonShader.getID(), "u_color");
+        GLuint uProjLoc  = glGetUniformLocation(buttonShader.getID(), "u_projection");
         
         // Set the projection uniform (same for all buttons)
         glUniformMatrix4fv(uProjLoc, 1, GL_FALSE, ortho);
@@ -425,7 +360,7 @@ int main() {
             glDrawArrays(GL_TRIANGLES, 0, 6);
         }
 
-        glUseProgram(diceShaderProgram);
+        diceShader.use();
 
         glViewport(0, 200,WIN_WIDTH,400);
         float portionAspect = WIN_WIDTH/(2 * WIN_HEIGHT/3);
