@@ -12,3 +12,5 @@
  - Make dice snap back to a face after rolling
  - Recolor/change looks
  - Currently very bare bones looking
+## Ideas
+ - To make the dice go back to its original postions, we can slowly increment/decrement each value to go back to the identity matrix.

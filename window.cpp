@@ -364,17 +364,18 @@ int main() {
 
         glViewport(0, 200,WIN_WIDTH,400);
         float portionAspect = WIN_WIDTH/(2 * WIN_HEIGHT/3);
+        float rand = dist(gen);
 
         if(isRolling){
             rotationAngle += deltaTime * 2.0f;
-            float rand = dist(gen);
-            model = glm::rotate(model, glm::radians(rotationAngle), glm::vec3(rotationAngle * rand, -rotationAngle * rand, rotationAngle  * rand));
+            // cout << "rand" << 10 * rand << endl;
+            model = glm::rotate(model, glm::radians(rotationAngle), glm::vec3(10 * rand, 10 * rand, 10 *rand));
             // cout << rotationAngle << endl;
             if(rotationAngle >= 2 * M_PI){
                 rotationAngle = 0.0f;
                 // currentState = prevState;
                 isRolling = false;
-
+                model = glm::mat4(1.0f);
                 cout << stateToString(currentState) << endl;
             }
         }
