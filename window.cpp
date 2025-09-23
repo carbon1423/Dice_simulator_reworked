@@ -7,6 +7,7 @@ using namespace std;
 #include <string>
 #include <random>
 #include <glm/gtc/epsilon.hpp>
+#include <glm/gtx/string_cast.hpp>
 #include "dice.h"
 #include "button.h"
 #include "shader.h"
@@ -292,11 +293,7 @@ int main() {
 
     float lastFrame = 0.0f;  // time of last frame
     float deltaTime = 0.0f;
-    float rotationAngle = 0.0f;
-
-    std::random_device rd;  
-    std::mt19937 gen(rd());  // Mersenne Twister engine
-    std::uniform_real_distribution<float> dist(0.0f, 1.0f); 
+    float rotationAngle = 5.0f;
 
     bool isRolling = false;
 
@@ -343,16 +340,12 @@ int main() {
 
             if (mousePressed && button.contains(mouseX, mouseY)) {
                 prevState = currentState;
-                // cout << "prevState" << stateToString(prevState) << endl;
                 if(static_cast<State>(button.get_index()) != State::ROLL){
                     currentState = static_cast<State>(button.get_index());
                 }else{
                     isRolling = true;
-                    rotationAngle = 0.0f;
+                    rotationAngle = 5.0f;
                 }
-                
-                // Debugging line to know what state we are in
-                // cout << "currentState = " << stateToString(currentState) << endl;
             }
         
             // Set color uniform
@@ -375,36 +368,26 @@ int main() {
 
         glViewport(0, 200,WIN_WIDTH,400);
         float portionAspect = WIN_WIDTH/(2 * WIN_HEIGHT/3);
-        float rand = dist(gen);
 
         if(isRolling){
-            rotationAngle += deltaTime * 2.0f;
-            // cout << "rand" << 10 * rand << endl;
-            model = glm::rotate(model, glm::radians(rotationAngle), glm::vec3(10 * rand, 10 * rand, 10 *rand));
-            // cout << rotationAngle << endl;
-            if(rotationAngle >= 2 * M_PI){
-                rotationAngle = 0.0f;
-                // currentState = prevState;
+            rotationAngle -= deltaTime * 1.0f;
+            int i = (int)rotationAngle;
+            if(i % 2 == 0){
+                model = glm::rotate(model, glm::radians(rotationAngle), glm::vec3(1.0f, 1.0f, 0.0f));
+            }else if(i % 2 == 1){
+                model = glm::rotate(model, glm::radians(rotationAngle), glm::vec3(0.0f, 1.0f, 1.0f));
+            }
+            if(rotationAngle <= 1.0f ){
+                rotationAngle = 5.0f;
                 isRolling = false;
-                // model = glm::mat4(1.0f);
                 cout << stateToString(currentState) << endl;
             }
         }else if(!approxEqual(model, glm::mat4(1.0f), 0.001f)){
-            // glm::mat4 modelSubI = model - glm::mat4(1.0f);
-            // model = model - (0.00001f * modelSubI);
             glm::quat curr = glm::quat_cast(model);
-            glm::quat target = glm::quat(1,0,0,0);
+            glm::quat target = glm::quat(1.0f,0.0f,0.0f,0.0f);
             curr = glm::slerp(curr,target,0.01f);
-
-            glm::vec3 position = glm::vec3(model[3]);
-            glm::vec3 scale(1.0f);
-
         
-            // rebuild full transform
-            glm::mat4 rot = glm::mat4_cast(curr);
-            model = glm::translate(glm::mat4(1.0f), position) *
-                    rot *
-                    glm::scale(glm::mat4(1.0f), scale);
+            model = glm::mat4_cast(curr);
         }else if(approxEqual(model, glm::mat4(1.0f), 0.001f)){
             model = glm::mat4(1.0f);
         }
