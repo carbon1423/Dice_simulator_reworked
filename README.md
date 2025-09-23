@@ -6,11 +6,11 @@
  - Use OpenGL and GLFW to create a small window in which you can roll the dice
 ## Current Progress:
  - All dice rendering
- - Dice roll, but do not reposition back to a face
+ - Dice roll
+ - Orthographic projection of button model
 ## Todo
  - Implement the custom dice
- - Make dice snap back to a face after rolling
  - Recolor/change looks
  - Currently very bare bones looking
+ - Light currently move with model transformations
 ## Ideas
- - To make the dice go back to its original postions, we can slowly increment/decrement each value to go back to the identity matrix.
