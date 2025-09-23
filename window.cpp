@@ -6,6 +6,7 @@ using namespace std;
 #include <sstream>
 #include <string>
 #include <random>
+#include <glm/gtc/epsilon.hpp>
 #include "dice.h"
 #include "button.h"
 #include "shader.h"
@@ -42,6 +43,16 @@ std::string stateToString(State s) {
     }
     return "Unknown";
 }
+
+bool approxEqual(const glm::mat4& a, const glm::mat4& b, float eps) {
+    for (int i = 0; i < 4; ++i) {
+        if (!glm::all(glm::epsilonEqual(a[i], b[i], eps))) {
+            return false;
+        }
+    }
+    return true;
+}
+
 
 /*renderSelect(State s)
 - Take in the current state and figure out which vertexes to render based on the state*/
@@ -375,9 +386,27 @@ int main() {
                 rotationAngle = 0.0f;
                 // currentState = prevState;
                 isRolling = false;
-                model = glm::mat4(1.0f);
+                // model = glm::mat4(1.0f);
                 cout << stateToString(currentState) << endl;
             }
+        }else if(!approxEqual(model, glm::mat4(1.0f), 0.001f)){
+            // glm::mat4 modelSubI = model - glm::mat4(1.0f);
+            // model = model - (0.00001f * modelSubI);
+            glm::quat curr = glm::quat_cast(model);
+            glm::quat target = glm::quat(1,0,0,0);
+            curr = glm::slerp(curr,target,0.01f);
+
+            glm::vec3 position = glm::vec3(model[3]);
+            glm::vec3 scale(1.0f);
+
+        
+            // rebuild full transform
+            glm::mat4 rot = glm::mat4_cast(curr);
+            model = glm::translate(glm::mat4(1.0f), position) *
+                    rot *
+                    glm::scale(glm::mat4(1.0f), scale);
+        }else if(approxEqual(model, glm::mat4(1.0f), 0.001f)){
+            model = glm::mat4(1.0f);
         }
         
         // simple static camera at (0,0,3) looking at origin
