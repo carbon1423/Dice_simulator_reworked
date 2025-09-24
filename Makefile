@@ -3,7 +3,7 @@ CXXFLAGS = -Wall -g -I./include
 LDFLAGS = -lglfw -lGL -ldl -lpthread
 
 # Source files
-SRC_ROOT = window.cpp
+SRC_ROOT = app.cpp
 SRC_SRC  = src/glad.c src/dice.cpp src/button.cpp src/shader.cpp
 SRC      = $(SRC_ROOT) $(SRC_SRC)
 
@@ -12,7 +12,7 @@ OBJDIR = build
 OBJ = $(addprefix $(OBJDIR)/,$(notdir $(SRC:.cpp=.o)))
 OBJ := $(OBJ:.c=.o)
 
-TARGET = window
+TARGET = app
 
 all: $(TARGET)
 
