@@ -13,12 +13,12 @@ out vec3 Normal;   // normal vector (for lighting)
 void main()
 {
     // Transform the vertex position to world space
-    FragPos = vec3(model * vec4(aPos, 1.0));
+    FragPos = vec3(view * model * vec4(aPos, 1.0));
 
     // Transform the normal vector with the inverse transpose of the model matrix
-    Normal = mat3(transpose(inverse(model))) * aNormal;
+    Normal = mat3(transpose(inverse(view * model))) * aNormal;
 
     // Final position on screen
-    gl_Position = projection * view * vec4(FragPos, 1.0);
+    gl_Position = projection * view * model * vec4(aPos, 1.0);
 
 }

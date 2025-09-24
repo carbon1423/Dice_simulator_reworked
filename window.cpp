@@ -272,7 +272,7 @@ int main() {
     GLint viewLoc        = glGetUniformLocation(diceShader.getID(), "view");
     GLint projLoc        = glGetUniformLocation(diceShader.getID(), "projection");
     GLint lightPosLoc    = glGetUniformLocation(diceShader.getID(), "lightPos");
-    GLint viewPosLoc     = glGetUniformLocation(diceShader.getID(), "viewPos");
+    // GLint viewPosLoc     = glGetUniformLocation(diceShader.getID(), "viewPos");
     GLint lightColorLoc  = glGetUniformLocation(diceShader.getID(), "lightColor");
     GLint objectColorLoc = glGetUniformLocation(diceShader.getID(), "objectColor");
     
@@ -281,7 +281,7 @@ int main() {
     if (viewLoc == -1)        std::cerr << "Warning: 'view' uniform not found\n";
     if (projLoc == -1)        std::cerr << "Warning: 'projection' uniform not found\n";
     if (lightPosLoc == -1)    std::cerr << "Warning: 'lightPos' uniform not found\n";
-    if (viewPosLoc == -1)     std::cerr << "Warning: 'viewPos' uniform not found\n";
+    // if (viewPosLoc == -1)     std::cerr << "Warning: 'viewPos' uniform not found\n";
     if (lightColorLoc == -1)  std::cerr << "Warning: 'lightColor' uniform not found\n";
     if (objectColorLoc == -1) std::cerr << "Warning: 'objectColor' uniform not found\n";
 
@@ -344,7 +344,7 @@ int main() {
                     currentState = static_cast<State>(button.get_index());
                 }else{
                     isRolling = true;
-                    rotationAngle = 5.0f;
+                    rotationAngle = 2.5f;
                 }
             }
         
@@ -377,7 +377,7 @@ int main() {
             }else if(i % 2 == 1){
                 model = glm::rotate(model, glm::radians(rotationAngle), glm::vec3(0.0f, 1.0f, 1.0f));
             }
-            if(rotationAngle <= 1.0f ){
+            if(rotationAngle <= 0.5f ){
                 rotationAngle = 5.0f;
                 isRolling = false;
                 cout << stateToString(currentState) << endl;
@@ -393,7 +393,7 @@ int main() {
         }
         
         // simple static camera at (0,0,3) looking at origin
-        glm::vec3 camPos   = glm::vec3(0.0f, 0.0f, -3.0f);
+        glm::vec3 camPos   = glm::vec3(0.0f, 0.0f, -10.0f);
         glm::vec3 camTarget= glm::vec3(0.0f, 0.0f, 0.0f);
         glm::vec3 camUp    = glm::vec3(0.0f, 1.0f, 0.0f);
         
@@ -416,11 +416,11 @@ int main() {
         glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
         
         // --- Lighting ---
-        glm::vec3 lightPos = glm::vec3(0.0f, 0.0f, -10.0f); // example light position
+        glm::vec3 lightPos = glm::vec3(view *glm::vec4(0.0f, 0.0f, -10.0f,1.0f)); // example light position
         glUniform3fv(lightPosLoc, 1, glm::value_ptr(lightPos));
         
         // use camPos for view position
-        glUniform3fv(viewPosLoc, 1, glm::value_ptr(camPos));
+        // glUniform3fv(viewPosLoc, 1, glm::value_ptr(camPos));
         
         glUniform3f(lightColorLoc, 0.8f, 0.8f, 0.8f);
         glUniform3f(objectColorLoc, 0.8f, 0.3f, 0.3f); // red dice
